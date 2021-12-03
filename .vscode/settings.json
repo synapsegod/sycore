@@ -1,0 +1,32 @@
+{
+    "Lua.diagnostics.globals": [
+        "shared",
+        "game",
+        "tick",
+        "typeof",
+        "Color3",
+        "Instance",
+        "Vector2",
+        "UDim2",
+        "Enum",
+        "UDim",
+        "syn",
+        "TweenInfo",
+        "isfile",
+        "isfolder",
+        "readfile",
+        "writefile",
+        "appendfile",
+        "delfile",
+        "listfiles",
+        "makefolder",
+        "delfolder",
+        "spawn",
+    ],
+    "Lua.diagnostics.disable": [
+        "trailing-space",
+        "redundant-parameter",
+        "deprecated"
+    ],
+    "Lua.completion.autoRequire": false
+}
