@@ -111,10 +111,12 @@ To check if a class is implementing another class use :Inherits(classname).
 
 ```lua
 local Human = Object:Extend("Human", nil, true)
+
 local Mom = Human:Extend("Mom")
-function Mom:new() return Object.new(self) end
+function Mom:new() return Human.new(self) end
+
 local Dad = Human:Extend("Dad")
-function Dad:new() return Object.new(self) end
+function Dad:new() return Human.new(self) end
 
 local Child = Human:Extend("Child"):Implements(Mom, Dad)
 function Child:new()
