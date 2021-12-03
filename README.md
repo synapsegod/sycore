@@ -93,7 +93,7 @@ local myPorsche = Porsche:new()
 Classes can be set to **abstract** or **final** meaning you may not use :new() on a class or extend the class, respectively.
 
 ```lua
-local Vehicle = Object:Extend("Vehicle", nil, false, false) --abstract, not final
+local Vehicle = Object:Extend("Vehicle", nil, false, false) --not abstract, not final
 local Car = Vehicle:Extend("Vehicle") --assertion error
 ```
 ## Interfaces / Multi-inheritance
