@@ -37,12 +37,14 @@ function Class:new(parent, text)
     local button = Button:new(label)
     object.Button = button
 
+    ---@param value Color3
     function object.Style:SetColor(value)
-        button.Style.ColorPreset = value
+        button.Style.Color = self.Color
     end
 
+    ---@param value number
     function object.Style:SetSize(value)
-        button.Style.SizePreset = value
+        button.Style.Size = self.Size
     end
 
     object.Style:Refresh()

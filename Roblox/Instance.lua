@@ -6,8 +6,8 @@ local Instances = {} ---@type table<RInstance, Instance>
 ---returns that object instead of creating a duplicate
 ---@class Instance : Object
 local Class = Object:Extend("Instance", {
-    Instance = Object.NewField(true, true),
-    Bindings = Object.NewField(true, true)
+    Instance = Object:NewField(true, true),
+    Bindings = Object:NewField(true, true)
 }, false, false)
 ---**readonly, final** Roblox instance
 Class.Instance = nil ---@type RInstance

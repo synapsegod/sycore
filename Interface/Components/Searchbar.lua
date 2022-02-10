@@ -3,19 +3,26 @@ local Button = Import(Package.."Interface\\Components\\Button.lua") ---@type But
 local Event = Import(Package.."Event.lua") ---@type Event
 local Tween = Import(Package.."Tween.lua") ---@type Tween
 
+---@class SearchbarResult
+---@field Data any
+---@field Component Component
+local SearchbarResult = {}
+
 ---@class Searchbar : Component
+---@field Keyword string
+---@field Data table<integer, any> | fun(self:Searchbar):table<integer, any>
+---@field Results SearchbarResult[]
+---@field SortOrder SortOrder
+---@field OnSelected Event
+---@field private LastSearch number
 local Class = Component:Extend("Searchbar")
+Class.SortOrder = Enum.SortOrder.LayoutOrder
 
-Class.Keyword = "keyword" ---@type string
-Class.Data = nil ---@type table
-Class.SortOrder = Enum.SortOrder ---@type SortOrder
-Class.OnSelected = nil ---@type Event
-
-Class.SearchFunction = function(object, keyword, key, value)
-    return not string.find(value, keyword) == nil
+---@param key integer
+---@param value string
+function Class:Filter(key, value)
+    return (self.Keyword == nil or self.Keyword == "") or (not string.find(value, self.Keyword) == nil)
 end
-
-Class.Found = {}
 
 ---@param parent RInstance
 ---@return Searchbar
@@ -30,34 +37,41 @@ function Class:new(parent)
     local uiListLayout = Instance.new("UIListLayout")
 
     local object = Component.new(self, container) ---@type Searchbar
-    object.OnSelected = Event.new()
+    object.OnSelected = Event:new()
+    object.Data = {}
+    object.Results = {}
 
+    ---@param value UDim
     function object.Style:SetRounding(value)
-        local rounding = object.Style:GetRounding()
 
-        uiCorner.CornerRadius = rounding
+        uiCorner.CornerRadius = value
 
         ---@param item RInstance
-        for _, item in pairs (scroll:GetChildren()) do
-            local corner = item:FindFirstChild("UICorner", true)
-            if corner then
-                corner.CornerRadius = rounding
-            end
+        for _, result in pairs (object.Results) do
+            result.Component.Style.Rounding = self.Rounding
         end
     end
 
+    ---@param value number
     function object.Style:SetSize(value)
-        local size = self:GetSize()
-        input.TextSize = size
-        container.Size = UDim2.new(container.Size.X.Scale, container.Size.X.Offset, 0, size)
+        input.TextSize = value
+        input.Size = UDim2.new(1, -10, 0, value)
+        container.Size = UDim2.new(container.Size.X.Scale, container.Size.X.Offset, 0, value)
+        object:AdjustSize()
     end
 
+    ---@param value Color3
     function object.Style:SetColor(value)
-        container.BackgroundColor3 = self:GetColor()
+        container.BackgroundColor3 = value
     end
 
+    ---@param value string
     function object.Style:SetFontFamily(value)
-        input.Font = Enum.Font[self.FontFamily]
+        input.Font = Enum.Font[value]
+
+        for _, result in pairs (object.Results) do
+            result.Component.Style:SetFontFamily(value)
+        end
     end
 
     --Properties:
@@ -82,8 +96,9 @@ function Class:new(parent)
     input.TextSize = 14.000
     input.TextXAlignment = Enum.TextXAlignment.Left
     input.Multiline = false
+    input.ClearTextOnFocus = false
 
-    uiCorner.CornerRadius = object.Style:GetRounding()
+    uiCorner.CornerRadius = UDim.new(0, 0)
     uiCorner.Name = "UICorner"
     uiCorner.Parent = container
 
@@ -104,13 +119,18 @@ function Class:new(parent)
     uiListLayout.Padding = UDim.new(0, 0)
 
     scroll.ChildAdded:Connect(function(child)
-        object:AdjustSize()
+        object:AdjustSize(child)
     end)
 
-    input.FocusLost:Connect(function(enterPressed, inputObj)
+    input.FocusLost:Connect(function(enterPressed, _)
         if not enterPressed then return end
+        if string.len(input.Text) == 0 then return end
 
-        object:Search(input.Text, nil, nil)
+        object.Keyword = input.Text
+    end)
+
+    object:GetPropertyChangedEvent("Keyword"):Connect(function()
+        object:Search(object.Keyword)
     end)
 
     object.Style:Refresh()
@@ -120,114 +140,79 @@ end
 
 function Class:AdjustSize()
     local container = self.Container
+    local data = container:WaitForChild("Data")
+
     ---@diagnostic disable-next-line: undefined-field
-    container.Size = UDim2.new(container.Size.X.Scale, container.Size.X.Offset, 0, self.Style:GetSize() + container.Data.UIListLayout.AbsoluteContentSize.Y)
+    local cSize = UDim2.new(container.Size.X.Scale, container.Size.X.Offset, 0, self.Style:GetSize() + data.UIListLayout.AbsoluteContentSize.Y)
     ---@diagnostic disable-next-line: undefined-field
-    self._container.Data.CanvasSize = UDim2.new(0, 0, 0, self._container.Data.UIListLayout.AbsoluteContentSize.Y)
+    local dSize = UDim2.new(0, 0, 0, data.UIListLayout.AbsoluteContentSize.Y)
+
+    Tween:Create(
+        container,
+        {Size = cSize},
+        0.3, "Quad", "Out"
+    ):Play()
+
+   Tween:Create(
+    data,
+       {CanvasSize = dSize},
+       0.3, "Quad", "Out"
+    ):Play()
 end
 
-function Class:DisplayContent(key, value)
-    local container = Instance.new("Frame")
-    container.Name = key
-    container.BackgroundTransparency = 1
-    container.Size = UDim2.new(1, -10, 0, self.Style:GetSize())
-    container.Name = tostring(value)
+---@param key integer
+---@param value any
+---@return Component
+function Class:AddResult(key, value)
+    local parent = self.Container:WaitForChild("Data")
+    local component = Button:new(parent, "Text") ---@type Button
+    component.Container.Size = UDim2.new(1, 0, 0, self.Style.SizeEnum:Get(self.Style.Size))
+    component.Container.Text = tostring(key) .. ": " .. tostring(value)
+    component.Style:Apply(self.Style)
+    component.Style.Color = component.Style.ColorEnum.BLACK
 
-    local label = Instance.new("TextButton")
-    label.BackgroundColor3 = self.ForegroundColor
-    label.BorderSizePixel = 0
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.Font = Enum.Font[self.Style.FontFamily]
-    label.TextColor3 = Color3.fromRGB(50, 50, 50)
-    label.TextSize = self.Style:GetSize()
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = container
-
-    local corner = Instance.new("UICorner")
-    corner.Name = "UICorner"
-    corner.CornerRadius = self.Style:GetRounding()
-    corner.Parent = label
-
-    local object = self
-    container.AncestryChanged:Connect(function(_, parent)
-        if not parent then
-            object:AdjustSize()
-        end
-    end)
-
-    label.Activated:Connect(function()
-        object.OnSelected:Fire(key, value)
-        ---@diagnostic disable-next-line: undefined-field
-        object._container.Input.Text = tostring(value)
-        object:_clearScroll()
-    end)
-
-    ---@diagnostic disable-next-line: undefined-field
-    container.Parent = self._container.Data
-
-    table.insert(self.Container:WaitForChild("Data"), container)
-end
-
-function Class:_clearScroll()
-    ---@diagnostic disable-next-line: undefined-field
-    for _, child in pairs (self._container.Data:GetChildren()) do
-        if not child.ClassName == "UIListLayout" then
-            child:Destroy()
-        end
+    local obj = self
+    function component:Activated()
+        obj.OnSelected:Fire(value)
+        obj:Clear()
     end
 
-    ---@diagnostic disable-next-line: undefined-field
-    table.clear(self._content)
+    return component
 end
 
-function Class:Search(keyword, sort, data, searchFunction)
+function Class:Clear()
+    for _, result in pairs (self.Results) do
+        result.Component:Destroy()
+    end
+
+    table.clear(self.Results)
+
+    self:AdjustSize()
+end
+
+---@param keyword string
+function Class:Search(keyword)
     keyword = keyword or self.Keyword
-    Parameters.Keyword:Check(keyword)
-
-    sort = sort or self.SortOrder
-    Parameters.SortOrder:Check(sort)
-
-    data = data or self.Data
-    Parameters.Data:Check(data)
-
-    searchFunction = searchFunction or self.SearchFunction
-    Parameters.SearchFunction:Check(searchFunction)
-
-    table.clear(self._found)
     local startSearch = tick()
-    self._lastSearch = startSearch
+    self.LastSearch = startSearch
+    self:Clear()
 
-    if string.len(keyword) == 0 then
-        for key, value in pairs (data) do
-            if not self._lastSearch == startSearch then return end
+    local data = (type(self.Data) == "table" and self.Data) or self:Data()
+    for key, value in pairs (data) do
+        if self.LastSearch ~= startSearch then return end
 
-            table.insert(self._found, key)
+        local filterPass = self:Filter(key, value)
+
+        if filterPass then
+            table.insert(self.Results, {Data = value, self:AddResult(key, value)})
         end
-    else
-        for key, value in pairs (data) do
-            if not self._lastSearch == startSearch then return end
-
-            if searchFunction(self, keyword, key, value) == true then
-                table.insert(self._found, key)
-            end
-        end
-    end
-
-    ---@diagnostic disable-next-line: undefined-field
-    self._container.Data.UIListLayout.SortOrder = sort
-
-    for _, key in pairs (self._found) do
-        if not self._lastSearch == startSearch then return end
-
-        self:_displayContent(key, data[key])
     end
 end
 
 function Class:Destroy()
-    if self._destroyed then return end
-    if self._container.Parent then self._container:Destroy() return end
+    if self.Destroyed then return end
 
-    Object.Destroy(self)
+    self._SUPER.Destroy(self)
 end
 
 return Class

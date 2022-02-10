@@ -24,26 +24,25 @@ function Class:new(parent)
 
     local object = Component.new(self, container) ---@type Checkbox
 
+    ---@param value UDim
     function object.Style:SetRounding(value)
-        local rounding = self:GetRounding()
-        UICorner.CornerRadius = rounding
-        UICorner_2.CornerRadius = rounding
-        UICorner_3.CornerRadius = rounding
+        UICorner.CornerRadius = value
+        UICorner_2.CornerRadius = value
+        UICorner_3.CornerRadius = value
     end
 
+    ---@param value number
     function object.Style:SetSize(value)
-        local size = self:GetSize()
-        container.Size = UDim2.new(0, size + 50, 0, size)
-        label.Position = UDim2.new(0, size, 0, 0)
-        label.Size = UDim2.new(1, -size, 1, 0)
-        label.TextSize = size
+        container.Size = UDim2.new(container.Size.X.Scale, container.Size.X.Offset, container.Size.Y.Scale, value)
+        label.Position = UDim2.new(0, value, 0, 0)
+        label.Size = UDim2.new(1, -value, 1, 0)
+        label.TextSize = value
     end
 
     function object.Style:SetColor(value)
-        local color = self:GetColor()
-        container.BorderColor3 = color
-        fakeBorder.BackgroundColor3 = color
-        fakeButton.ImageColor3 = color
+        container.BorderColor3 = value
+        fakeBorder.BackgroundColor3 = value
+        fakeButton.ImageColor3 = value
     end
 
     function object.Style:SetFontFamily(value)
@@ -106,8 +105,6 @@ function Class:new(parent)
     UICorner_3.CornerRadius = UDim.new(0, 5)
     UICorner_3.Parent = container
 
-    object._container = container
-
     object.Style:Refresh()
     object:Toggle(object.State)
 
@@ -141,8 +138,6 @@ end
 function Class:Destroy()
     if self.Destroyed then return end
     self._SUPER.Destroy(self)
-
-    
 end
 
 return Class

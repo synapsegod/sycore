@@ -1,9 +1,7 @@
-local Object = Import(Package.."OOP\\Object.lua") ---@type Object
 local Interface = Import(Package.."Interface\\Interface.lua") ---@type Interface
 local Component = Import(Package.."Interface\\Component.lua") ---@type Component
 local Event = Import(Package.."Event.lua") ---@type Event
 local Threading = Import(Package.."Threading.lua") ---@type Threading
-local Style = Import(Package.."Interface\\Style.lua") ---@type Style
 
 local Me = game.Players.LocalPlayer ---@type RPlayer
 local Mouse = Me:GetMouse() ---@type RMouse
@@ -17,8 +15,7 @@ Class.BackgroundColor = Color3.fromRGB(230, 230, 230)
 Class.IsDragging = false
 Class.IsMaximized = false
 
----@param parent RInstance
-function Class:new(parent)
+function Class:new()
     -- Instances:
 
     local window = Instance.new("Frame")
@@ -35,32 +32,38 @@ function Class:new(parent)
     object.OnMaximized = Event.new()
     object.OnMinimized = Event.new()
 
+    ---@param value Color3
     function object.Style:SetColor(value)
-        local color = self:GetColor()
-        topbar.BackgroundColor3 = color
+        topbar.BackgroundColor3 = value
 
         for _, child in pairs (topbar:GetChildren()) do
-            child.BackgroundColor3 = color
+            child.BackgroundColor3 = value
         end
     end
 
-    function object.Style:SetRounding(value)
-        local rounding = self:GetRounding()
-        corner1.CornerRadius = rounding
-        corner2.CornerRadius = rounding
+    ---@param value Color3
+    function object.Style:SetTextColor(value)
+        header.TextColor3 = value
     end
 
+    ---@param value UDim
+    function object.Style:SetRounding(value)
+        corner1.CornerRadius = value
+        corner2.CornerRadius = value
+    end
+
+    ---@param value number
     function object.Style:SetSize(value)
-        local size = self:GetSize()
+        topbar.Size = UDim2.new(1, 0, 0, value)
 
         for _, child in pairs (topbar:GetChildren()) do
-            child.TextSize = size
+            child.TextSize = value
         end
     end
 
     --Properties:
 
-    window.Name = object["Name"]
+    window.Name = object.Name
     window.Parent = Interface.Gui
     window.AnchorPoint = Vector2.new(0.5, 0)
     window.BackgroundTransparency = 0
@@ -83,7 +86,7 @@ function Class:new(parent)
     header.Size = UDim2.new(1, -40, 1, 0)
     header.Font = Enum.Font.Ubuntu
     header.TextColor3 = Color3.fromRGB(230, 230, 230)
-    header.TextSize = object.Style:GetSize()
+    header.TextSize = 14
     header.Text = object.Title
 
     closeButton.Name = "CloseButton"
@@ -146,11 +149,8 @@ function Class:new(parent)
         content.BackgroundColor3 = object.BackgroundColor
     end)
 
-    object.Style:SetColor()
-    object.Style:SetRounding()
-    object:SetTitle()
-
     Interface:AddWindow(object)
+    object.Style:Refresh()
 
     return object
 end

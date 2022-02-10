@@ -2,8 +2,8 @@ local Object = Import(Package.."OOP\\Object.lua") ---@type Object
 
 ---@class Interface : Object
 local Class = Object:Extend("Interface", {
-    Windows = Object.NewField(true, true),
-    Gui = Object.NewField(true, true)
+    Windows = Object:NewField(true, true),
+    Gui = Object:NewField(true, true)
 }, true, false)
 Class.Windows = {} ---@type table<integer, Window>
 Class.Gui = Instance.new("ScreenGui") ---@type RInstance

@@ -48,7 +48,7 @@ If a field is **final** then all descending classes / objects will **not** be ab
 
 ```lua
 local MyClass = Object:Extend("MyClassName", {
-    TestValue = Object.NewField(true, true) --readonly, final
+    TestValue = Object:NewField(true, true) --readonly, final
 })
 
 function MyClass:new(TestValue)
@@ -71,7 +71,7 @@ To check if a class extends another class somehow, use :IsA(classname)
 local Vehicle = Object:Extend("Vehicle", nil, true, false)
 
 local Car = Vehicle:Extend("Car", {
-    Wheels = Object.NewField(true, true)
+    Wheels = Object:NewField(true, true)
 }, false, false)
 function Car:new(speed)
     local object = self._SUPER.new(self)

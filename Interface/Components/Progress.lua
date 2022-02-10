@@ -1,29 +1,25 @@
 local Component = Import(Package.."Interface\\Component.lua") ---@type Component
 local Math = Import(Package.."Math.lua") ---@type Math
 local Tween = Import(Package.."Tween.lua") ---@type Tween
-
----@type Event
-local Event = Import(Package.."Event.lua")
+local Event = Import(Package.."Event.lua") ---@type Event
 
 ---@class Progress : Component
+---@field OnFinished Event Fires when progress hits 1
+---@field Progress number Alpha number from 0 to 1 representing the progress
+---@field Speed number Bar length grow per second in pixels
 local Class = Component:Extend("Progress", {
-    OnFinished = Component.NewField(true, true),
-    Progress = Component.NewField(false, true),
-    Speed = Component.NewField(false, true),
-    StartColor = Component.NewField(false, true)
+    OnFinished = Component:NewField(true, true),
+    Progress = Component:NewField(false, true),
+    Speed = Component:NewField(false, true),
 })
-
-Class.OnFinished = nil ---@type Event
-Class.Progress = 0 ---@type number
----Bar length grow per second in pixels
-Class.Speed = 300 ---@type number
----Bar will gradient from this color to color of its style color depending on self.Progress. By default equals self.Style:GetColor()
-Class.StartColor = Color3.fromRGB(32, 32, 32) ---@type Color3
+Class.Speed = 300
 
 ---@param parent RInstance
 ---@return Progress
 function Class:new(parent)
     local object = self._SUPER.new(self, parent) ---@type Progress
+    object.OnFinished = Event:new()
+    object.Progress = 0
 
     -- Instances:
 
@@ -32,30 +28,29 @@ function Class:new(parent)
     local UICorner = Instance.new("UICorner")
     local label = Instance.new("TextLabel")
     local UICorner_2 = Instance.new("UICorner")
-
-    object.OnFinished = Event.new()
-
+    
+    ---@param value UDim
     function object.Style:SetRounding(value)
-        local rounding = self:GetRounding()
-        UICorner.CornerRadius = rounding
-        UICorner_2.CornerRadius = rounding
+        UICorner.CornerRadius = value
+        UICorner_2.CornerRadius = value
     end
 
+    ---@param value number
     function object.Style:SetSize(value)
-        local size = self:GetSize()
-        label.TextSize = size
-        container.Size = UDim2.new(container.Size.X.Scale, container.Size.X.Offset, 0, size)
+        label.TextSize = value
+        container.Size = UDim2.new(container.Size.X.Scale, container.Size.X.Offset, 0, value)
     end
 
+    ---@param value Color3
     function object.Style:SetColor(value)
-        bar.BackgroundColor3 = Color3:lerp(self:GetColor(), object.Progress)
+        bar.BackgroundColor3 = Color3:lerp(value, object.Progress)
     end
 
     function object.Style:SetFontFamily(value)
         label.Font = Enum.Font[self.FontFamily]
     end
 
-    object.StartColor = object.Style:GetColor()
+    object.StartColor = object.Style.ColorEnum:Get(object.Style.Color)
 
     --Properties:
 
@@ -118,7 +113,6 @@ function Class:Update(ratio)
     Tween:Create(
         self.Container["Bar"], {
             Size = UDim2.new(self.Progress, 0, 1, 0),
-            BackgroundColor3 = Color3:lerp(self.Style:GetColor(), self.Progress)
         }, distance / self.Speed, "Linear"
     ):Play()
 

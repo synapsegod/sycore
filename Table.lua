@@ -1,21 +1,22 @@
 local Object = Import(Package.."Object.lua") ---@type Object
 local Proxy = Import(Package.."OOP\\Proxy.lua") ---@type Proxy
 local Event = Import(Package.."Event.lua") ---@type Event
-local Class = Object:Extend("Table", {}, false, false) ---@class Table : Object
-Class.Data = nil ---@type Proxy
-Class.ItemAdded = nil ---@type Event
-Class.ItemRemoved = nil ---@type Event
-Class.ItemUpdated = nil ---@type Event
+
+---@class Table : Object
+---@field Data table
+---@field ItemAdded Event
+---@field ItemRemoved Event
+---@field ItemUpdated Event
+local Class = Object:Extend("Table") ---@class Table : Object
 
 ---@param data ?table<any, any>
 ---@return Table
 function Class:new(data)
-	local object = Object.new(Class) ---@type Table
-	object.ItemAdded = Event.new() ---@type Event
+	local object = self._SUPER.new(self) ---@type Table
+	object.ItemAdded = Event.new()   ---@type Event
 	object.ItemRemoved = Event.new() ---@type Event
 	object.ItemUpdated = Event.new() ---@type Event
 
-	---@type Proxy
 	object.Data = Proxy.new(data or {}, {
 		__newindex = function(_, key, value)
 			local old = data[key]
@@ -44,6 +45,27 @@ function Class:new(data)
 	})
 
 	return object
+end
+
+---@param key? any --Uses table.insert if key == number
+---@param value any
+function Class:Insert(key, value)
+	key = key or #self.Data + 1
+
+	if type(key) == "number" then
+		local oldValue = self.Data[key]
+		table.insert(self.Data(), key, value)
+
+		if oldValue then
+			self.ItemUpdated:Fire(key, oldValue, value)
+		else
+			self.ItemAdded:Fire(key or #self.Data(), value)
+		end
+
+		return
+	end
+
+	self.Data[key] = value
 end
 
 function Class:Remove(key)

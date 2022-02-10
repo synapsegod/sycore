@@ -1,52 +1,57 @@
+local Proxy = Import(Package.."OOP\\Proxy.lua") ---@type Proxy
+
 ---@class Enumerator
-local Class = {
-	_CLASS = "Enumerator",
-}
-Class.__index = Class
+local Enumerator = {_CLASS = "Enumerator"}
+Enumerator.__index = Enumerator
 
 ---@class EnumValue
-local EnumValue = nil
+---@field Name string
+---@field Value integer
+local EnumValue = {_CLASS = "EnumValue"}
+EnumValue.__index = EnumValue
 
----@param keys table<integer, string>
+---@param ... string
 ---@return Enumerator
-function Class.new(keys)
-	Assert(type(keys) == "table", "Incorrect keys parameter")
+function Enumerator:new(...)
+	local keys = {...}
 
-	---@type Enumerator
-	local object = setmetatable({}, Class)
-
-	for i, key in pairs (keys) do
-		--Assert(Class[key] ~= nil, "Reserved enum name", key)
-		Assert(type(key) == "string", "Enum must be a string")
-
-		object[key] = EnumValue.new(key, i)
+	local object = setmetatable({}, Enumerator) ---@type Enumerator
+	for value, key in pairs (keys) do
+		Assert(object[key] == nil, "Enum name", key, "is reserved")
+		Assert(type(key) == "string", "Incorrect enum parameter", value, key)
+		
+		object[key] = EnumValue:new(key, value)
 	end
 
-	local proxy = setmetatable({}, {
+	local proxy = Proxy.new(object, {
 		__index = function(_, key)
-			Assert(type(key) == "string", "Invalid index", key, "should be string")
+			local found = object[key]
 
-			if object:ValueOf(key) ~= -1 then	--if they are looking for a value
-				return object[key]._value
+			---@type EnumValue
+			if TypeOf(found) == "EnumValue" then
+				return found.Value
 			end
 
-			return object[key]	--looking for a method, if its not in enumerated then in metatable.__index
+			return found
 		end,
+
 		__newindex = function(_, key, value)
-			Assert(false, "Attempted to write enum with", key, value)
-		end,
+			Assert(object[key] == nil, "Cannot write enumerator", key, ":", value)
+			object[key] = value
+		end
 	})
 
-    return proxy
+	return proxy
 end
 
----@return table<number, EnumValue>
-function Class:Values()
+---@return EnumValue[]
+function Enumerator:Values()
 	local values = {}
 
-	for _, value in pairs (self) do
-		if TypeOf(value) == "EnumItem" then
-			table.insert(values, value)
+	---@param enumValue EnumValue
+	for _, enumValue in pairs (self()) do
+		if TypeOf(enumValue) == "EnumValue" then
+			table.insert(values, EnumValue)
 		end
 	end
 
@@ -54,67 +59,53 @@ function Class:Values()
 end
 
 ---@param value integer
----@return string
-function Class:NameOf(value)
-	for _, enum in pairs (self:Values()) do
-		if enum._value == value then
-			return enum._name
-		end
-	end
-
-	return "null"
+---@return string?
+function Enumerator:NameOf(value)
+	return self:EnumValueOf(value).Name
 end
 
 ---@param name string
----@return number
-function Class:ValueOf(name)
-	for _, enum in pairs (self:Values()) do
-		if enum._name == name then
-			return enum._value
-		end
-	end
-	
-	return -1
+---@return integer?
+function Enumerator:ValueOf(name)
+	return self:EnumValueOf(name).Value
 end
 
--------------------------------------------------------------------------------------------------------
-EnumValue = {
-	Class = "EnumValue",
-
-	_name = "name",
-	_value = 0
-}
-EnumValue.__index = EnumValue
+---@param value string | integer Name or Value works
+---@return EnumValue?
+function Enumerator:EnumValueOf(value)
+	for _, enumvalue in pairs (self:Values()) do
+		if type(value) == "string" then
+			if enumvalue.Name == value then return enumvalue end
+		elseif (type(value)) == "number" then
+			if enumvalue.Value == value then return enumvalue end
+		end
+	end
+end
 
 ---@param name string
 ---@param value integer
 ---@return EnumValue
-function EnumValue.new(name, value)
-	local object = setmetatable({
-		_name = name,
-		_value = value
-	}, EnumValue)
-	
-	local proxy = setmetatable({}, {
-		__index = function(_, key)
-			return object[key]	--looking for a method, if its not in enumerated then in metatable.__index
-		end,
-		__newindex = function(_, key, val)
-			Assert(key ~= "_name" and key ~= "_value", "Attempted to write readonly values:", key, value)
-			Assert(type(key) == "string", "Incorrect index type:", key, value)
+function EnumValue:new(name, value)
+	local object = setmetatable({}, EnumValue)---@type EnumValue
+	object.Name = name
+	object.Value = value
 
-			object[key] = val
+	local proxy = Proxy.new(object, {
+		__call = function()
+			Assert(false, "Cannot bypass proxy for enumvalue")
 		end,
+		__newindex= function (_, k, v)
+			Assert(k ~= "Name" and k ~= "Value", "Cannot write enum value", k, ":", v)
+			object[k] = v
+		end
 	})
-
+	
 	return proxy
 end
 
 ---@return string
 function EnumValue:ToString()
-	return self._name .. " : " .. tostring(self._value)
+	return self.Value .. " : " .. tostring(self.Name)
 end
 
--------------------------------------------------------------------------------------------------------
-
-return Class
+return Enumerator

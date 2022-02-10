@@ -6,17 +6,26 @@ local ClassNames = {"Object", "Field", "Proxy"} ---@type table<integer, string>
 local Objects = {} ---@type table<integer, Object>
 local LastID = 0 ---@type integer
 
-local Class = {} ---@class Object
-Class._CLASS = "Object" ---@type string Classname
-Class._IS_CLASS = true ---@type boolean Is the object a class or not
-Class._EVENTS = nil ---@type table<string, Event> Internal table containing property events
-Class._ABSTRACT = false ---@type boolean If the Class can be instantiated with :new()
-Class._FINAL = false ---@type boolean If the Class can be extended
-Class._SUPER = nil ---Objects or classes metatable
+---@class Object
+---@field _CLASS string Unqiue classname
+---@field _IS_CLASS boolean Is the object a class or not
+---@field _EVENTS table<string, Event> Internal table containing property events
+---@field _ABSTRACT boolean If the Class can be instantiated with :new()
+---@field _FINAL boolean If the Class can be extended
+---@field _SUPER table Objects or classes metatable
+---@field _INHERITS table<integer, string> If the class inherits interface(s) they can be found in this list, use with :Inherits(name)
+---@field Destroyed boolean If the object is destroyed or not
+---@field Name string Name of the object, by default Classname + ID
+---@field ID integer Unique ID of the object
+local Class = {} 
+Class._CLASS = "Object"
+Class._IS_CLASS = true
+Class._ABSTRACT = false
+Class._FINAL = false
 Class._INHERITS = {"Object"}
-Class.Destroyed = false ---@type boolean If the object is destroyed or not
-Class.Name = nil ---@type string Non-unique identifier for object. By default "[self._CLASS..self.ID]"
+Class.Destroyed = false
 
+---@param fields table<string, Field>
 local function createFieldProxy(fields)
     return Proxy.new(fields, {
         __call = function()
@@ -39,6 +48,8 @@ local function createFieldProxy(fields)
     })
 end
 
+---@param object Object
+---@param fields table<string, Field>
 local function createWriteProxy(object, fields)
     return Proxy.new(object, {
         __newindex = function(_, key, value)
@@ -87,7 +98,6 @@ Class.__index = Class
 ---Creates a new object if the class is not abstract.
 ---@return Object
 function Class:new()
-    --Assert(self._IS_CLASS, "Can only call :new() from a class")
     Assert(self._ABSTRACT == false, "Class", self._CLASS, "is abstract")
 
     if self._IS_CLASS then
@@ -152,8 +162,12 @@ function Class:Extend(name, customFields, abstract, final)
     return createWriteProxy(class, fields)
 end
 
+---Used for multi-inheritance, this COPIES class fields into the new class, technically does not inherit. Any instances created with :new()
+---will only inherit from the class it was extended from. Only class fields NOT already present will be copied into the new class, first implementing class being dominant.
+---@param ... Object A list of classes to inherit from
 function Class:Implements(...)
     local classes = {...}
+
     for _, class in pairs (classes) do
         Assert(self:Inherits(class._CLASS) == false, self._CLASS, "already inherits", class._CLASS)
 
@@ -177,6 +191,7 @@ function Class:ToString()
     for _, key in pairs (self:Keys()) do
         local value = self[key]
         local str = "\n  ["..tostring(key).."] = "..tostring(value)
+
         if type(value) == "table" then
             for k, v in pairs (value) do
                 str = str .. "\n    ["..tostring(k).."] = "..tostring(v)
@@ -190,6 +205,7 @@ function Class:ToString()
 	return total
 end
 
+---Returns an event that fires each time the property (name) inside object changes.
 ---@param name string Corresponding value name (For example Name or Destroyed)
 function Class:GetPropertyChangedEvent(name)
 	Assert(self[name], "Field", name, "does not exist")
@@ -205,7 +221,7 @@ function Class:GetPropertyChangedEvent(name)
 	return event
 end
 
----Returns true if the object inherits a specific class. Object is the base ancestor for all objects
+---Returns true if the object extends a specific class. Object is the base ancestor for all objects. Does not check for interfaces.
 ---@param name string Classname
 function Class:IsA(name)
     local object = self
@@ -221,10 +237,13 @@ function Class:IsA(name)
     return false
 end
 
+---Returns true if the object implements a specific class. Use for interfaces.
 function Class:Inherits(name)
     return table.find(self._INHERITS, name) ~= nil
 end
 
+---Returns all keys inside an object/class
+---@return table<string, any>
 function Class:Keys()
 	local keys = {}
 
@@ -235,7 +254,8 @@ function Class:Keys()
 	return keys
 end
 
----Destroys the object and disconnects property bound events
+---Destroys the object and disconnects property bound events.
+---Please only override inside class field and use self._SUPER.Destroy(self)
 function Class:Destroy()
     if self.Destroyed == true then return end
 
@@ -257,12 +277,21 @@ end
 
 ---@param readonly ?boolean
 ---@param final ?boolean
-function Class.NewField(readonly, final)
+function Class:NewField(readonly, final)
     return Field.new(readonly, final)
 end
 
 return Proxy.new(Class, {
     __newindex = function (_, ...)
         Assert(false, "Cannot write to", Class._CLASS, ...)
+    end,
+
+    __gc = function(self)
+        for key, object in pairs (Objects) do
+            if object.ID == self.ID then
+                table.remove(Objects, key)
+                return
+            end
+        end
     end
 })

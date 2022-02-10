@@ -22,6 +22,7 @@
         "makefolder",
         "delfolder",
         "spawn",
+        "workspace"
     ],
     "Lua.diagnostics.disable": [
         "trailing-space",

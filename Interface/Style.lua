@@ -3,65 +3,162 @@ local Enumerator = Import(Package.."Enumerator\\Enumerator.lua") ---@type Enumer
 
 ---@class Style : Object
 local Class = Object:Extend("Style")
+Class.StyleFields = {"Rounding", "Size", "Color", "TextColor", "Position"}
 
 Class.FontFamily = "Ubuntu"
 
-Class.RoundingPresets = Enumerator.new({"ROUNDED", "BEVELED", "CORNERED"})
-Class._roundingPresets = {8, 5, 0}
-Class.RoundingPreset = Class.RoundingPresets:ValueOf("BEVELED")
-
-Class.SizePresets = Enumerator.new({"SMALL", "DEFAULT", "MEDIUM", "LARGE"})
-Class._sizePresets = {12, 16, 20, 24}
-Class.SizePreset = Class.SizePresets:ValueOf("DEFAULT")
-
-Class.ColorPresets = Enumerator.new({"DEFAULT", "INFO", "SUCCESS", "DANGER", "WARNING", "DARK", "LIGHT", "BLACK", "WHITE"})
-Class._colorPresets = {
-    Color3.fromRGB(85, 85, 255),
-    Color3.fromRGB(85, 170, 255),
-    Color3.fromRGB(0, 170, 127),
-    Color3.fromRGB(206, 61, 61),
-    Color3.fromRGB(255, 243, 111),
-    Color3.fromRGB(50, 50, 50),
-    Color3.fromRGB(240, 240, 240),
+---@class StyleRoundingEnum : Enumerator
+---@field ROUNDED integer
+---@field BEVELED integer
+---@field CORNERED integer
+local RoundingEnum = Enumerator:new(
+    "ROUNDED", "BEVELED", "CORNERED"
+)
+---@type table<string, UDim>
+RoundingEnum.Roundings = {
+    ROUNDED = UDim.new(0, 8),
+    BEVELED = UDim.new(0, 5),
+    CORNERED = UDim.new(0, 0)
 }
-Class.ColorPreset = Class.ColorPresets:ValueOf("DEFAULT")
-Class.TextColorPreset = Class.ColorPresets:ValueOf("LIGHT")
 
-Class.PositionPresets = Enumerator.new({
+---@param value integer | string Can use enum name or value
+---@return UDim rounding The rounding associated with the enum key/value
+function RoundingEnum:Get(value)
+    if type(value) == "number" then
+        return self.Roundings[self:NameOf(value)]
+    end
+    return self.Roundings[value]
+end
+Class.RoundingEnum = RoundingEnum
+Class.Rounding = RoundingEnum:ValueOf("BEVELED")
+
+---@class StyleSizeEnum : Enumerator
+---@field SMALL integer
+---@field DEFAULT integer
+---@field MEDIUM integer
+---@field LARGE integer
+local SizeEnum = Enumerator:new(
+    "SMALL", "DEFAULT", "MEDIUM", "LARGE"
+)
+---@type table<string, UDim>
+SizeEnum.Sizes = {
+    SMALL = 12,
+    DEFAULT = 16,
+    MEDIUM = 20,
+    LARGE = 30
+}
+
+---@param value integer | string Can use enum name or value
+---@return number size The size associated with the enum key/value
+function SizeEnum:Get(value)
+    if type(value) == "number" then
+        return self.Sizes[self:NameOf(value)]
+    end
+    return self.Sizes[value]
+end
+Class.SizeEnum = SizeEnum
+Class.Size = SizeEnum:ValueOf("DEFAULT")
+
+---@class StyleColorEnum : Enumerator
+---@field DEFAULT integer 1
+---@field INFO integer 2
+---@field SUCCESS integer 3
+---@field DANGER integer 4
+---@field WARNING integer 5
+---@field DARK integer 6
+---@field LIGHT integer 7
+---@field BLACK integer 8
+---@field WHITE integer 9
+local ColorEnum = Enumerator:new(
+    "DEFAULT", "INFO", "SUCCESS", "DANGER", "WARNING", "DARK", "LIGHT", "BLACK", "WHITE"
+)
+
+---@type table<string, Color3>
+ColorEnum.Colors = {
+    DEFAULT = Color3.fromRGB(85, 85, 255),
+    INFO = Color3.fromRGB(85, 170, 255),
+    SUCCESS = Color3.fromRGB(0, 170, 127),
+    DANGER = Color3.fromRGB(206, 61, 61),
+    WARNING = Color3.fromRGB(255, 243, 111),
+    DARK = Color3.fromRGB(50, 50, 50),
+    LIGHT = Color3.fromRGB(240, 240, 240),
+    BLACK = Color3.fromRGB(10, 10, 10),
+    WHITE = Color3.fromRGB(250, 250, 250)
+}
+
+---@param value integer | string Can use enum name or value
+---@return Color3 color The color associated with the enum key/value
+function ColorEnum:Get(value)
+    if type(value) == "number" then
+        return self.Colors[self:NameOf(value)]
+    end
+    return self.Colors[value]
+end
+Class.ColorEnum = ColorEnum
+Class.Color = ColorEnum.DARK
+Class.TextColor = ColorEnum.LIGHT
+
+---@class StylePositionEnum : Enumerator
+---@field TOPLEFT integer 1
+---@field TOP integer 2
+---@field TOPRIGHT integer 3
+---@field LEFT integer 4
+---@field CENTER integer 5
+---@field RIGHT integer 6
+---@field BOTTOMLEFT integer 7
+---@field BOTTOM integer 8
+---@field BOTTOMRIGHT integer 9
+local PositionEnum = Enumerator:new(
     "TOPLEFT", "TOP", "TOPRIGHT",
     "LEFT", "CENTER", "RIGHT",
     "BOTTOMLEFT", "BOTTOM", "BOTTOMRIGHT"
-})
-Class._positionPresets = {
-    UDim2.new(0, 0, 0, 0), UDim2.new(0.5, 0, 0, 0), UDim2.new(1, 0, 0, 0),
-    UDim2.new(0, 0, 0.5, 0), UDim2.new(0.5, 0, 0.5, 0), UDim2.new(1, 0, 0.5, 0),
-    UDim2.new(0, 0, 1, 0), UDim2.new(0.5, 0, 1, 0), UDim2.new(1, 0, 1, 0)
+)
+---@type table<string, UDim2>
+PositionEnum.Positions = {
+    TOPLEFT = UDim2.new(0, 0, 0, 0), TOP = UDim2.new(0.5, 0, 0, 0), TOPRIGHT = UDim2.new(1, 0, 0, 0),
+    LEFT = UDim2.new(0, 0, 0.5, 0), CENTER = UDim2.new(0.5, 0, 0.5, 0), RIGHT= UDim2.new(1, 0, 0.5, 0),
+    BOTTOMLEFT = UDim2.new(0, 0, 1, 0), BOTTOM = UDim2.new(0.5, 0, 1, 0), BOTTOMRIGHT = UDim2.new(1, 0, 1, 0)
 }
-Class.PositionPreset = Class.PositionPresets:ValueOf("TOP")
+---@param value integer | string Can use enum name or value
+---@return UDim2 position The position associated with the enum key/value
+function PositionEnum:Get(value)
+    if type(value) == "number" then
+        return self.Positions[self:NameOf(value)]
+    end
+    return self.Positions[value]
+end
+Class.PositionEnum = PositionEnum
+Class.Position = PositionEnum:ValueOf("TOPLEFT")
 
 function Class:new()
     local object = Object.new(self) ---@type Style
 
-    object:GetPropertyChangedEvent("RoundingPreset"):Connect(function(_, new)
-        object:SetRounding(new)
+    ---@param new integer
+    object:GetPropertyChangedEvent("Rounding"):Connect(function(_, new)
+        object:SetRounding(object.RoundingEnum:Get(new))
     end)
 
-    object:GetPropertyChangedEvent("SizePreset"):Connect(function(_, new)
-        object:SetSize(new)
+    ---@param new number
+    object:GetPropertyChangedEvent("Size"):Connect(function(_, new)
+        object:SetSize(object.SizeEnum:Get(new))
     end)
 
-    object:GetPropertyChangedEvent("ColorPreset"):Connect(function(_, new)
-        object:SetColor(new)
+    ---@param new integer
+    object:GetPropertyChangedEvent("Color"):Connect(function(_, new)
+        object:SetColor(object.ColorEnum:Get(new))
     end)
 
-    object:GetPropertyChangedEvent("TextColorPreset"):Connect(function(_, new)
-        object:SetTextColor(new)
+    ---@param new integer
+    object:GetPropertyChangedEvent("TextColor"):Connect(function(_, new)
+        object:SetTextColor(object.ColorEnum:Get(new))
     end)
 
-    object:GetPropertyChangedEvent("PositionPreset"):Connect(function(_, new)
-        object:SetPosition(new)
+    ---@param new integer
+    object:GetPropertyChangedEvent("Position"):Connect(function(_, new)
+        object:SetPosition(object.PositionEnum:Get(new))
     end)
 
+    ---@param new string
     object:GetPropertyChangedEvent("FontFamily"):Connect(function(_, new)
         object:SetFontFamily(new)
     end)
@@ -69,95 +166,48 @@ function Class:new()
     return object
 end
 
----Creates a blank Style and sets the Presets
-function Class:Clone()
-    local copy = Class:new()
-
-    copy.RoundingPreset = self.RoundingPreset
-    copy.SizePreset = self.SizePreset
-    copy.ColorPreset = self.ColorPreset
-    copy.TextColorPreset = self.TextColorPreset
-    copy.PositionPreset = self.PositionPreset
-    copy.FontFamily = self.FontFamily
-
-    return copy
-end
-
 function Class:Refresh()
-    self:SetRounding()
-    self:SetSize()
-    self:SetColor()
-    self:SetTextColor()
-    self:SetPosition()
-    self:SetFontFamily()
+    self:SetRounding(self.RoundingEnum:Get(self.Rounding))
+    self:SetSize(self.SizeEnum:Get(self.Size))
+    self:SetColor(self.ColorEnum:Get(self.Color))
+    self:SetTextColor(self.ColorEnum:Get(self.TextColor))
+    self:SetPosition(self.PositionEnum:Get(self.Position))
+    self:SetFontFamily(self.FontFamily)
 end
 
----@param value integer
----@return UDim
-function Class:GetRounding(value)
-    value = value or self.RoundingPreset
-
-    return UDim.new(0, self._roundingPresets[value])
+---@param style Style
+function Class:Apply(style)
+    for _, key in pairs (style.StyleFields) do
+        self[key] = style[key]
+    end
 end
 
----@param value integer
+---@param value UDim
 function Class:SetRounding(value)
     
 end
 
----@param value integer
----@return number
-function Class:GetSize(value)
-    value = value or self.SizePreset
-
-    return self._sizePresets[value]
-end
-
----@param value integer
+---@param value number
 function Class:SetSize(value)
     
 end
 
----@param value integer
----@return Color3
-function Class:GetColor(value)
-    value = value or self.ColorPreset
-
-    return self._colorPresets[value]
-end
-
----@param value integer
+---@param value Color3
 function Class:SetColor(value)
     
 end
 
----@param value integer
----@return Color3
-function Class:GetTextColor(value)
-    value = value or self.TextColorPreset
-
-    return self._colorPresets[value]
-end
-
----@param value integer
+---@param value Color3
 function Class:SetTextColor(value)
     
 end
 
----@param value integer
----@return UDim2
-function Class:GetPosition(value)
-    value = value or self.PositionPreset
-
-    return self._positionPresets[value]
-end
-
----@param value integer
+---@param value UDim2
 function Class:SetPosition(value)
 
 end
 
----@param value integer
+---@param value string
 function Class:SetFontFamily(value)
     
 end
